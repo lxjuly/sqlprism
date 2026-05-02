@@ -1,6 +1,6 @@
 import type { SelectStatement } from "../ast/statement";
-import { getProjectionMetadata, type ProjectionMetadata } from "../analysis/metadata";
-import { normalizeStatement } from "../analysis/normalize";
+import { toSemanticQuery } from "../analysis/semantic-query";
+import type { SemanticQuery, SemanticSelection } from "../semantic/model";
 
 export interface VegaLiteSpec {
   $schema?: string;
@@ -12,10 +12,12 @@ export interface VegaLiteSpec {
 }
 
 export function generateVegaLite(statement: SelectStatement): VegaLiteSpec {
-  const normalized = normalizeStatement(statement);
-  const projections = getProjectionMetadata(normalized);
-  const dimensions = projections.filter((projection) => !projection.isAggregate);
-  const measures = projections.filter((projection) => projection.isAggregate);
+  return semanticQueryToVegaLite(toSemanticQuery(statement));
+}
+
+export function semanticQueryToVegaLite(query: SemanticQuery): VegaLiteSpec {
+  const dimensions = query.selections.filter((selection) => selection.kind === "dimension");
+  const measures = query.selections.filter((selection) => selection.kind === "measure");
 
   const mark = chooseMark(dimensions, measures);
   const encoding: Record<string, unknown> = {};
@@ -27,7 +29,7 @@ export function generateVegaLite(statement: SelectStatement): VegaLiteSpec {
     encoding.x = {
       field: presentField(primaryDimension.label),
       type: inferFieldType(primaryDimension.label, false),
-      sort: inferSort(normalized, primaryDimension.label),
+      sort: inferSort(query, primaryDimension.label),
       axis: inferAxis(primaryDimension.label),
     };
   }
@@ -53,29 +55,29 @@ export function generateVegaLite(statement: SelectStatement): VegaLiteSpec {
     };
   }
 
-  encoding.tooltip = projections.map((projection) => ({
-    field: presentField(projection.label),
-    type: inferFieldType(projection.label, projection.isAggregate),
-    title: presentField(projection.label),
+  encoding.tooltip = query.selections.map((selection) => ({
+    field: presentField(selection.label),
+    type: inferFieldType(selection.label, selection.kind === "measure"),
+    title: presentField(selection.label),
   }));
 
   return {
     $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-    title: inferTitle(normalized),
-    description: inferDescription(normalized),
+    title: inferTitle(query),
+    description: inferDescription(query),
     mark,
     encoding,
-    data: normalized.from
+    data: query.source
       ? {
-          name: normalized.from.path.join("."),
+          name: query.source.path,
         }
       : undefined,
   };
 }
 
 function chooseMark(
-  dimensions: ProjectionMetadata[],
-  measures: ProjectionMetadata[],
+  dimensions: SemanticSelection[],
+  measures: SemanticSelection[],
 ): string {
   const primaryDimension = dimensions[0];
   const primaryMeasure = measures[0];
@@ -127,12 +129,10 @@ function inferAxis(label: string): Record<string, string> | undefined {
 }
 
 function inferSort(
-  statement: SelectStatement,
+  query: SemanticQuery,
   label: string,
 ): string | undefined {
-  const order = statement.orderBy.find((item) => {
-    return item.expression.type === "column" && item.expression.name === label;
-  });
+  const order = query.orderBy.find((item) => item.alias === label || presentField(item.expression) === label);
 
   if (!order) {
     return undefined;
@@ -141,15 +141,15 @@ function inferSort(
   return order.direction === "desc" ? "-x" : "x";
 }
 
-function inferTitle(statement: SelectStatement): string {
-  const source = statement.from?.path.at(-1) ?? "query";
-  const grouped = statement.groupBy.length > 0;
+function inferTitle(query: SemanticQuery): string {
+  const source = query.source?.path.split(".").at(-1) ?? "query";
+  const grouped = query.groupBy.length > 0;
   return grouped ? `Aggregated view of ${source}` : `Query view of ${source}`;
 }
 
-function inferDescription(statement: SelectStatement): string {
-  const grouped = statement.groupBy.length > 0;
-  const joined = statement.joins.length > 0;
+function inferDescription(query: SemanticQuery): string {
+  const grouped = query.groupBy.length > 0;
+  const joined = query.joins.length > 0;
   const parts = [
     grouped ? "Grouped analytical query" : "Ungrouped query",
     joined ? "with joins" : "without joins",

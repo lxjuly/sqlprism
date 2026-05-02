@@ -9,6 +9,7 @@ import {
   parseOne,
   refract,
   resolveColumnSource,
+  toSemanticQuery,
 } from "../src";
 import { analyticalQueries } from "./fixtures/queries";
 
@@ -105,5 +106,18 @@ describe("generators", () => {
       { user_id: "1", total: 5.5 },
       { user_id: "2", total: 3 },
     ]);
+  });
+
+  it("builds a semantic query model from analytical sql", () => {
+    const ast = parseOne(analyticalQueries.groupedRevenue);
+    const semantic = toSemanticQuery(ast);
+
+    expect(semantic.source?.path).toBe("sales");
+    expect(semantic.selections.map((selection) => selection.kind)).toEqual([
+      "dimension",
+      "measure",
+    ]);
+    expect(semantic.selections[1].aggregate?.function).toBe("sum");
+    expect(semantic.groupBy).toEqual(["sales.region"]);
   });
 });

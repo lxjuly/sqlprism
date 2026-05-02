@@ -2,6 +2,8 @@ import type { SqlExpression } from "../ast/expression";
 import type { SelectStatement } from "../ast/statement";
 import { expressionLabel } from "../analysis/metadata";
 import { normalizeStatement } from "../analysis/normalize";
+import { toSemanticQuery } from "../analysis/semantic-query";
+import type { SemanticAggregate, SemanticPredicate, SemanticQuery, SemanticReference } from "../semantic/model";
 
 export interface OsiReference {
   source: string;
@@ -58,6 +60,73 @@ export interface OsiQuery {
 }
 
 export function generateOsi(statement: SelectStatement): OsiQuery {
+  return semanticQueryToOsi(toSemanticQuery(statement));
+}
+
+export function semanticQueryToOsi(query: SemanticQuery): OsiQuery {
+  return {
+    source: query.source?.path ?? null,
+    sourceAlias: query.source?.alias ?? null,
+    joins: query.joins.map((join) => ({
+      type: join.type,
+      source: join.source.path,
+      sourceAlias: join.source.alias,
+      on: join.expression,
+      predicate: semanticPredicateToOsi(join.predicate),
+    })),
+    select: query.selections.map((selection) => ({
+      expression: selection.expression,
+      alias: selection.alias,
+      reference: semanticReferenceToOsi(selection.reference),
+      aggregate: semanticAggregateToOsi(selection.aggregate),
+    })),
+    filters: query.filters.map((filter) => ({
+      expression: filter.expression,
+      predicate: semanticPredicateToOsi(filter.predicate),
+    })),
+    groupBy: query.groupBy,
+    orderBy: query.orderBy.map((item) => ({
+      expression: item.expression,
+      direction: item.direction,
+      alias: item.alias,
+      reference: semanticReferenceToOsi(item.reference),
+    })),
+    limit: query.limit,
+  };
+}
+
+function semanticReferenceToOsi(reference: SemanticReference | null): OsiReference | null {
+  return reference ? { ...reference } : null;
+}
+
+function semanticAggregateToOsi(aggregate: SemanticAggregate | null): OsiAggregate | null {
+  return aggregate
+    ? {
+        function: aggregate.function,
+        reference: { ...aggregate.reference },
+      }
+    : null;
+}
+
+function semanticPredicateToOsi(predicate: SemanticPredicate | null): OsiPredicate | null {
+  if (!predicate) {
+    return null;
+  }
+
+  return {
+    left: { ...predicate.left },
+    operator: predicate.operator,
+    right:
+      predicate.right.kind === "literal"
+        ? { kind: "literal", value: predicate.right.value }
+        : {
+            kind: "reference",
+            reference: { ...predicate.right.reference },
+          },
+  };
+}
+
+function generateOsiFromNormalized(statement: SelectStatement): OsiQuery {
   const normalized = normalizeStatement(statement);
 
   return {
