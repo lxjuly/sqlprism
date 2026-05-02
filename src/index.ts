@@ -20,8 +20,10 @@ import { generateOsi } from "./generators/osi";
 import { generateSql } from "./generators/sql";
 import { generateVegaLite } from "./generators/vega";
 import { parse, parseOne } from "./parser";
+import { executeOsiQuery } from "./runtime/execute-osi";
+import { demoDataset } from "./runtime/mock-data";
 
-export { generateDuckDbSql, generateOsi, generateSql, generateVegaLite, getSourceBindings, parse, parseOne, resolveColumnSource };
+export { demoDataset, executeOsiQuery, generateDuckDbSql, generateOsi, generateSql, generateVegaLite, getSourceBindings, parse, parseOne, resolveColumnSource };
 
 export interface RefractOptions {
   read?: string;

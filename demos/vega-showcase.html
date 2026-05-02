@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SQLPrism Vega-Lite Showcase</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+    <script src="./showcase-data.js"></script>
+    <style>
+      :root {
+        --bg: #f4f0e8;
+        --panel: #fffdf8;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --line: #ded7c9;
+        --accent: #b45309;
+        --accent-soft: #f59e0b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top right, rgba(245, 158, 11, 0.18), transparent 24rem),
+          linear-gradient(180deg, #f8f4ec 0%, var(--bg) 100%);
+      }
+
+      .page {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 48px 24px 72px;
+      }
+
+      .hero {
+        margin-bottom: 36px;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        font-size: 12px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(2.4rem, 5vw, 4.8rem);
+        line-height: 0.95;
+        font-weight: 700;
+      }
+
+      .hero p {
+        max-width: 720px;
+        margin: 0;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .meta {
+        margin-top: 14px;
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 22px;
+        box-shadow: 0 16px 40px rgba(31, 41, 55, 0.08);
+      }
+
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 1.45rem;
+      }
+
+      .card p {
+        margin: 0 0 14px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .sql {
+        margin: 0 0 18px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: #f7f2e8;
+        border: 1px solid #eadfcb;
+        font-family: "SFMono-Regular", "Menlo", monospace;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+
+      .chart {
+        min-height: 320px;
+      }
+
+      .footer {
+        margin-top: 28px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <p class="eyebrow">SQLPrism Demo</p>
+        <h1>SQL to OSI to Vega-Lite</h1>
+        <p>
+          This showcase now follows the real demo path: SQL is parsed into AST, refracted into an
+          OSI semantic payload, executed against the mock runtime, and then rendered as Vega-Lite.
+        </p>
+        <p class="meta" id="generated-at">Waiting for generated showcase data.</p>
+      </section>
+
+      <section class="grid" id="cards"></section>
+
+      <p class="footer">
+        Refresh the showcase data by running <code>npm run demo:all</code>, then reload this file
+        in the browser.
+      </p>
+    </main>
+
+    <script>
+      const baseConfig = {
+        config: {
+          view: { stroke: "transparent" },
+          axis: {
+            labelColor: "#374151",
+            titleColor: "#374151",
+            gridColor: "#e7decf"
+          },
+          title: {
+            color: "#1f2937",
+            fontSize: 18,
+            fontWeight: "bold"
+          }
+        }
+      };
+
+      const palette = {
+        region: "#b45309",
+        trend: "#92400e",
+        user: "#d97706"
+      };
+
+      const data = window.SQLPRISM_DEMO ?? { generatedAt: "pending", examples: [] };
+      document.getElementById("generated-at").textContent = `Showcase data generated at: ${data.generatedAt}`;
+
+      const cards = document.getElementById("cards");
+
+      function decorateSpec(example) {
+        const spec = structuredClone(example.spec);
+
+        if (example.id === "region") {
+          spec.mark = {
+            type: "bar",
+            cornerRadiusTopRight: 6,
+            cornerRadiusBottomRight: 6,
+            color: palette.region
+          };
+          spec.encoding.x.sort = "-y";
+        }
+
+        if (example.id === "trend") {
+          spec.mark = {
+            type: "line",
+            point: { filled: true, fill: "#f59e0b" },
+            color: palette.trend,
+            strokeWidth: 3
+          };
+        }
+
+        if (example.id === "user") {
+          spec.mark = {
+            type: "bar",
+            cornerRadiusTopLeft: 6,
+            cornerRadiusTopRight: 6,
+            color: palette.user
+          };
+        }
+
+        return {
+          ...baseConfig,
+          ...spec
+        };
+      }
+
+      for (const example of data.examples) {
+        const article = document.createElement("article");
+        article.className = "card";
+        article.innerHTML = `
+          <h2>${example.name}</h2>
+          <p>${example.description}</p>
+          <pre class="sql">${example.sql}</pre>
+          <div class="chart" id="chart-${example.id}"></div>
+        `;
+        cards.appendChild(article);
+      }
+
+      for (const example of data.examples) {
+        vegaEmbed(`#chart-${example.id}`, decorateSpec(example), { actions: false });
+      }
+    </script>
+  </body>
+</html>

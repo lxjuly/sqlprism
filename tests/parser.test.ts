@@ -18,9 +18,10 @@ describe("parseOne", () => {
   it("parses joins and filters", () => {
     const ast = parseOne(analyticalQueries.joinedRevenue);
 
-    expect(ast.joins).toHaveLength(1);
+    expect(ast.joins).toHaveLength(2);
     expect(ast.joins[0].joinType).toBe("inner");
-    expect(ast.joins[0].source.alias?.name).toBe("s");
+    expect(ast.joins[0].source.alias?.name).toBe("i");
+    expect(ast.joins[1].source.alias?.name).toBe("s");
     expect(ast.where?.type).toBe("binary");
     expect(ast.groupBy).toHaveLength(1);
   });

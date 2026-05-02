@@ -6,7 +6,10 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "demo:osi": "npm run build && node demos/osi-demo.js",
+    "demo:vega": "npm run build && node demos/vega-demo.js",
+    "demo:all": "npm run build && node demos/build-showcase-data.js && node demos/osi-demo.js && node demos/vega-demo.js"
   },
   "keywords": [
     "sql",

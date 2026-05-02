@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  demoDataset,
+  executeOsiQuery,
   getSourceBindings,
   generateDuckDbSql,
   generateOsi,
@@ -27,18 +29,45 @@ describe("generators", () => {
 
     expect(osi.source).toBe("sales");
     expect(osi.select[1].alias).toBe("total_revenue");
-    expect(osi.filters).toEqual(["sales.revenue > 100"]);
+    expect(osi.filters[0].expression).toBe("sales.revenue > 100");
     expect(osi.groupBy).toEqual(["sales.region"]);
+    expect(osi.select[1].aggregate?.function).toBe("sum");
   });
 
   it("generates a best-effort vega-lite spec", () => {
     const ast = parseOne(analyticalQueries.trendQuery);
     const spec = generateVegaLite(ast);
 
-    expect(spec.mark).toBe("bar");
+    expect(spec.mark).toBe("line");
+    expect(spec.$schema).toContain("vega-lite");
     expect(spec.encoding.x).toEqual({
       field: "order_date",
       type: "temporal",
+      sort: undefined,
+      axis: { format: "%b %d" },
+    });
+    expect(spec.encoding.y).toEqual({
+      field: "total_revenue",
+      type: "quantitative",
+      axis: { format: "~s" },
+    });
+  });
+
+  it("uses bar charts for grouped categorical aggregates", () => {
+    const ast = parseOne(analyticalQueries.groupedRevenue);
+    const spec = generateVegaLite(ast);
+
+    expect(spec.mark).toBe("bar");
+    expect(spec.encoding.x).toEqual({
+      field: "region",
+      type: "nominal",
+      sort: undefined,
+      axis: undefined,
+    });
+    expect(spec.encoding.y).toEqual({
+      field: "total_revenue",
+      type: "quantitative",
+      axis: { format: "~s" },
     });
   });
 
@@ -55,7 +84,7 @@ describe("generators", () => {
     const ast = parseOne(analyticalQueries.joinedRevenue);
     const sources = getSourceBindings(ast);
 
-    expect(sources.map((source) => source.visibleName)).toEqual(["o", "s"]);
+    expect(sources.map((source) => source.visibleName)).toEqual(["o", "i", "s"]);
 
     const resolved = resolveColumnSource(ast, {
       type: "column",
@@ -65,5 +94,16 @@ describe("generators", () => {
     });
 
     expect(resolved?.source.path).toEqual(["orders"]);
+  });
+
+  it("executes osi payloads against the mock runtime", () => {
+    const ast = parseOne(analyticalQueries.joinedRevenue);
+    const osi = generateOsi(ast);
+    const rows = executeOsiQuery(osi, demoDataset);
+
+    expect(rows).toEqual([
+      { user_id: "1", total: 5.5 },
+      { user_id: "2", total: 3 },
+    ]);
   });
 });
