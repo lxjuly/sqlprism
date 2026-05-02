@@ -108,3 +108,9 @@ const result = refract(sql, { read: "duckdb" });
 ```
 
 But convenience should sit on top of the parser and generator primitives, not replace them.
+
+## Repository Notes
+
+Public architectural intent should live in `spec/`.
+
+Local-only workflow notes and in-progress task notes should live in `docs/`, which is intentionally ignored by git and should not be treated as part of the published or versioned project surface.

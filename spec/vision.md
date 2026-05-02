@@ -7,7 +7,7 @@ SQLPrism is an open source TypeScript library for turning SQL into a reusable pr
 The core workflow is:
 
 1. Parse SQL into AST
-2. Inspect or normalize the AST
+2. Inspect, normalize, and extract semantic query intent
 3. Generate one or more downstream artifacts
 
 ## Primary Outputs
@@ -24,6 +24,8 @@ The AST is the primary product of the parser. It should be stable enough to supp
 ### OSI Semantic Query
 
 SQLPrism should generate a governed semantic query shape that preserves the intent of the SQL while fitting OSI-style payload requirements.
+
+This semantic query layer is the primary frontend-oriented abstraction for the project. The library does not need to behave like a backend SQL transpiler to be successful.
 
 ### Vega-Lite Spec
 
@@ -53,6 +55,7 @@ SQLPrism does not need to match SQLGlot’s scope immediately. It should start w
 - Full SQL optimizer coverage
 - Execution engine beyond DuckDB SQL generation
 - Exhaustive schema-aware semantic resolution
+- Full-fledged SQL exploration support equivalent to backend query engines
 
 ## First Milestone Scope
 

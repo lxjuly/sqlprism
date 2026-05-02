@@ -13,6 +13,7 @@
 import {
   parse,
   parseOne,
+  toSemanticQuery,
   generateSql,
   generateDuckDbSql,
   generateOsi,
@@ -42,6 +43,7 @@ type ParseOptions = {
 ```ts
 const duckdbSql = generateDuckDbSql(ast);
 const sql = generateSql(ast, { dialect: "duckdb" });
+const semantic = toSemanticQuery(ast);
 const osi = generateOsi(ast);
 const vega = generateVegaLite(ast);
 ```
@@ -86,3 +88,5 @@ This API shape follows the same general lessons visible in SQLGlot:
 - AST traversal is a first-class operation
 - generation is distinct from parsing
 - convenience helpers are layered on top
+
+SQLPrism now also treats the semantic query model as a first-class layer between AST and downstream generators.
