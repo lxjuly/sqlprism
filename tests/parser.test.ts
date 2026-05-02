@@ -8,8 +8,8 @@ describe("parseOne", () => {
 
     expect(ast.type).toBe("select");
     expect(ast.projections).toHaveLength(2);
-    expect(ast.projections[1].alias).toBe("total_revenue");
-    expect(ast.from?.name).toEqual(["sales"]);
+    expect(ast.projections[1].alias?.name).toBe("total_revenue");
+    expect(ast.from?.path).toEqual(["sales"]);
     expect(ast.groupBy).toHaveLength(1);
     expect(ast.orderBy[0].direction).toBe("desc");
     expect(ast.limit).toBe(10);
@@ -20,6 +20,7 @@ describe("parseOne", () => {
 
     expect(ast.joins).toHaveLength(1);
     expect(ast.joins[0].joinType).toBe("inner");
+    expect(ast.joins[0].source.alias?.name).toBe("s");
     expect(ast.where?.type).toBe("binary");
     expect(ast.groupBy).toHaveLength(1);
   });
@@ -31,6 +32,17 @@ describe("parseOne", () => {
     if (ast.where?.type === "binary") {
       expect(ast.where.left.type).toBe("binary");
       expect(ast.where.operator).toBe(">");
+    }
+  });
+
+  it("keeps explicit table qualifiers in column expressions", () => {
+    const ast = parseOne(analyticalQueries.joinedRevenue);
+    const firstProjection = ast.projections[0].expression;
+
+    expect(firstProjection.type).toBe("column");
+    if (firstProjection.type === "column") {
+      expect(firstProjection.table).toBe("o");
+      expect(firstProjection.name).toBe("user_id");
     }
   });
 });

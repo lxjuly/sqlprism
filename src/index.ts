@@ -2,6 +2,7 @@ export type { SqlExpression } from "./ast/expression";
 export type {
   JoinClause,
   OrderByItem,
+  SqlAlias,
   SelectItem,
   SelectStatement,
   SqlStatement,
@@ -13,13 +14,14 @@ export type { OsiQuery } from "./generators/osi";
 export type { VegaLiteSpec } from "./generators/vega";
 
 import { normalizeStatement } from "./analysis/normalize";
+import { getSourceBindings, resolveColumnSource } from "./analysis/scope";
 import { generateDuckDbSql } from "./generators/duckdb";
 import { generateOsi } from "./generators/osi";
 import { generateSql } from "./generators/sql";
 import { generateVegaLite } from "./generators/vega";
 import { parse, parseOne } from "./parser";
 
-export { generateDuckDbSql, generateOsi, generateSql, generateVegaLite, parse, parseOne };
+export { generateDuckDbSql, generateOsi, generateSql, generateVegaLite, getSourceBindings, parse, parseOne, resolveColumnSource };
 
 export interface RefractOptions {
   read?: string;

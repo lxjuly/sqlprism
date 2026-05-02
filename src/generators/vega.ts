@@ -46,7 +46,7 @@ export function generateVegaLite(statement: SelectStatement): VegaLiteSpec {
     encoding,
     data: statement.from
       ? {
-          name: statement.from.alias ?? statement.from.name.join("."),
+          name: statement.from.alias?.name ?? statement.from.path.join("."),
         }
       : undefined,
   };
@@ -61,7 +61,11 @@ function chooseMark(
     return "bar";
   }
 
-  if (dimensionCount > 0 && measureCount > 0 && /date|time/i.test(statement.projections[0]?.alias ?? "")) {
+  if (
+    dimensionCount > 0 &&
+    measureCount > 0 &&
+    /date|time/i.test(statement.projections[0]?.alias?.name ?? "")
+  ) {
     return "line";
   }
 

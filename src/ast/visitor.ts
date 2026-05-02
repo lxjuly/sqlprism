@@ -3,7 +3,6 @@ import type {
   ColumnExpression,
   FunctionCallExpression,
   GroupExpression,
-  IdentifierExpression,
   LiteralExpression,
   SqlExpression,
   StarExpression,
@@ -12,7 +11,6 @@ import type {
 
 export interface ExpressionVisitor<R> {
   column(expression: ColumnExpression): R;
-  identifier(expression: IdentifierExpression): R;
   literal(expression: LiteralExpression): R;
   call(expression: FunctionCallExpression): R;
   binary(expression: BinaryExpression): R;
@@ -28,8 +26,6 @@ export function visitExpression<R>(
   switch (expression.type) {
     case "column":
       return visitor.column(expression);
-    case "identifier":
-      return visitor.identifier(expression);
     case "literal":
       return visitor.literal(expression);
     case "call":

@@ -2,6 +2,7 @@ import type { SqlExpression } from "../ast/expression";
 import type {
   JoinClause,
   OrderByItem,
+  SqlAlias,
   SelectItem,
   SelectStatement,
   TableSource,
@@ -79,30 +80,30 @@ export class Parser {
 
   private parseSelectItem(): SelectItem {
     const expression = this.parseExpression();
-    let alias: string | null = null;
+    let alias: SqlAlias | null = null;
 
     if (this.match(TokenType.AS)) {
-      alias = this.consumeIdentifier("Expected alias after AS.");
+      alias = this.parseAlias("Expected alias after AS.");
     } else if (this.canReadImplicitAlias()) {
-      alias = this.advance().literal?.toString() ?? this.previous().lexeme;
+      alias = this.parseAlias("Expected alias.");
     }
 
     return { expression, alias };
   }
 
   private parseTableSource(): TableSource {
-    const name = this.parseIdentifierPath("Expected table name after FROM.");
-    let alias: string | null = null;
+    const path = this.parseIdentifierPath("Expected table name after FROM.");
+    let alias: SqlAlias | null = null;
 
     if (this.match(TokenType.AS)) {
-      alias = this.consumeIdentifier("Expected alias after AS.");
+      alias = this.parseAlias("Expected alias after AS.");
     } else if (this.canReadImplicitAlias()) {
-      alias = this.advance().literal?.toString() ?? this.previous().lexeme;
+      alias = this.parseAlias("Expected alias.");
     }
 
     return {
       type: "table",
-      name,
+      path,
       alias,
     };
   }
@@ -350,7 +351,7 @@ export class Parser {
     }
 
     if (this.match(TokenType.STAR)) {
-      return { type: "star" };
+      return { type: "star", table: null };
     }
 
     if (this.match(TokenType.LEFT_PAREN)) {
@@ -372,6 +373,13 @@ export class Parser {
   private parseIdentifierExpression(): SqlExpression {
     const parts = this.parseIdentifierPath("Expected identifier.");
 
+    if (parts.length > 0 && this.match(TokenType.DOT) && this.match(TokenType.STAR)) {
+      return {
+        type: "star",
+        table: parts.join("."),
+      };
+    }
+
     if (this.match(TokenType.LEFT_PAREN)) {
       const args: SqlExpression[] = [];
 
@@ -390,16 +398,11 @@ export class Parser {
       };
     }
 
-    if (parts.length === 1) {
-      return {
-        type: "column",
-        parts,
-      };
-    }
-
     return {
       type: "column",
-      parts,
+      path: parts,
+      table: parts.length > 1 ? parts.slice(0, -1).join(".") : null,
+      name: parts[parts.length - 1],
     };
   }
 
@@ -416,6 +419,12 @@ export class Parser {
   private consumeIdentifier(message: string): string {
     const token = this.consume(TokenType.IDENTIFIER, message);
     return token.literal?.toString() ?? token.lexeme;
+  }
+
+  private parseAlias(message: string): SqlAlias {
+    return {
+      name: this.consumeIdentifier(message),
+    };
   }
 
   private canReadImplicitAlias(): boolean {

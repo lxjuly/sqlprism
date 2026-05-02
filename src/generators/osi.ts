@@ -1,12 +1,16 @@
 import type { SqlExpression } from "../ast/expression";
 import type { SelectStatement } from "../ast/statement";
 import { expressionLabel } from "../analysis/metadata";
+import { normalizeStatement } from "../analysis/normalize";
+import { getSourceBindings } from "../analysis/scope";
 
 export interface OsiQuery {
   source: string | null;
+  sourceAlias: string | null;
   joins: Array<{
     type: string;
     source: string;
+    sourceAlias: string | null;
     on: string | null;
   }>;
   select: Array<{
@@ -23,24 +27,29 @@ export interface OsiQuery {
 }
 
 export function generateOsi(statement: SelectStatement): OsiQuery {
+  const normalized = normalizeStatement(statement);
+  const sourceBindings = getSourceBindings(normalized);
+
   return {
-    source: statement.from ? statement.from.name.join(".") : null,
-    joins: statement.joins.map((join) => ({
+    source: normalized.from ? normalized.from.path.join(".") : null,
+    sourceAlias: normalized.from?.alias?.name ?? null,
+    joins: normalized.joins.map((join) => ({
       type: join.joinType,
-      source: join.source.name.join("."),
+      source: join.source.path.join("."),
+      sourceAlias: join.source.alias?.name ?? null,
       on: join.on ? expressionToSemanticString(join.on) : null,
     })),
-    select: statement.projections.map((projection) => ({
+    select: normalized.projections.map((projection) => ({
       expression: expressionToSemanticString(projection.expression),
-      alias: projection.alias,
+      alias: projection.alias?.name ?? null,
     })),
-    filters: statement.where ? [expressionToSemanticString(statement.where)] : [],
-    groupBy: statement.groupBy.map(expressionToSemanticString),
-    orderBy: statement.orderBy.map((item) => ({
+    filters: normalized.where ? [expressionToSemanticString(normalized.where)] : [],
+    groupBy: normalized.groupBy.map(expressionToSemanticString),
+    orderBy: normalized.orderBy.map((item) => ({
       expression: expressionToSemanticString(item.expression),
       direction: item.direction,
     })),
-    limit: statement.limit,
+    limit: normalized.limit,
   };
 }
 

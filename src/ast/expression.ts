@@ -1,6 +1,5 @@
 export type SqlExpression =
   | ColumnExpression
-  | IdentifierExpression
   | LiteralExpression
   | FunctionCallExpression
   | BinaryExpression
@@ -10,11 +9,8 @@ export type SqlExpression =
 
 export interface ColumnExpression {
   type: "column";
-  parts: string[];
-}
-
-export interface IdentifierExpression {
-  type: "identifier";
+  path: string[];
+  table: string | null;
   name: string;
 }
 
@@ -49,4 +45,5 @@ export interface GroupExpression {
 
 export interface StarExpression {
   type: "star";
+  table: string | null;
 }

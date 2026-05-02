@@ -49,9 +49,7 @@ export function generateSql(
 export function generateExpression(expression: SqlExpression): string {
   switch (expression.type) {
     case "column":
-      return expression.parts.join(".");
-    case "identifier":
-      return expression.name;
+      return expression.path.join(".");
     case "literal":
       if (expression.value === null) {
         return "NULL";
@@ -68,18 +66,18 @@ export function generateExpression(expression: SqlExpression): string {
     case "group":
       return `(${generateExpression(expression.expression)})`;
     case "star":
-      return "*";
+      return expression.table ? `${expression.table}.*` : "*";
   }
 }
 
 function generateSelectItem(item: SelectItem): string {
   const expression = generateExpression(item.expression);
-  return item.alias ? `${expression} AS ${item.alias}` : expression;
+  return item.alias ? `${expression} AS ${item.alias.name}` : expression;
 }
 
 function generateTableSource(source: TableSource): string {
-  const name = source.name.join(".");
-  return source.alias ? `${name} AS ${source.alias}` : name;
+  const name = source.path.join(".");
+  return source.alias ? `${name} AS ${source.alias.name}` : name;
 }
 
 function generateJoin(join: JoinClause): string {

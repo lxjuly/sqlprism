@@ -2,6 +2,10 @@ import type { SqlExpression } from "./expression";
 
 export type SqlStatement = SelectStatement;
 
+export interface SqlAlias {
+  name: string;
+}
+
 export interface SelectStatement {
   type: "select";
   projections: SelectItem[];
@@ -15,7 +19,7 @@ export interface SelectStatement {
 
 export interface SelectItem {
   expression: SqlExpression;
-  alias: string | null;
+  alias: SqlAlias | null;
 }
 
 export interface OrderByItem {
@@ -25,8 +29,8 @@ export interface OrderByItem {
 
 export interface TableSource {
   type: "table";
-  name: string[];
-  alias: string | null;
+  path: string[];
+  alias: SqlAlias | null;
 }
 
 export interface JoinClause {
